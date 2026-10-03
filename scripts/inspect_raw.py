@@ -195,6 +195,72 @@ def inspect_daily_date_order(file_path: Path) -> None:
     print(f"Last date: {dates[-1]}")
 
 
+def inspect_values_and_quality(file_path: Path) -> None:
+    columns, rows = read_csv(file_path)
+
+    if not rows:
+        return
+
+    value_column = "Value/Valeur"
+
+    if value_column not in columns:
+        return
+
+    values = []
+    blank_values = 0
+    invalid_values = []
+
+    for row_number, row in enumerate(rows, start=2):
+        raw_value = row[value_column].strip()
+
+        if not raw_value:
+            blank_values += 1
+            continue
+
+        try:
+            values.append(float(raw_value))
+        except ValueError:
+            invalid_values.append((row_number, raw_value))
+
+    print("=" * 70)
+    print(f"VALUE AND QUALITY INSPECTION: {file_path.name}")
+    print(f"Rows checked: {len(rows)}")
+    print(f"Numeric values: {len(values)}")
+    print(f"Blank values: {blank_values}")
+    print(f"Invalid numeric values: {len(invalid_values)}")
+
+    if values:
+        print(f"Minimum value: {min(values)}")
+        print(f"Maximum value: {max(values)}")
+
+    if invalid_values:
+        print("Invalid values:")
+
+        for row_number, raw_value in invalid_values[:10]:
+            print(
+                f"  Row {row_number}: {raw_value!r}"
+            )
+
+    for column in [
+        "Parameter/Paramètre",
+        "Symbol/Symbole",
+        "Approval/Approbation",
+        "Grade/Classification",
+        "Qualifier/Qualificatif",
+        "Qualifiers/Qualificatifs",
+    ]:
+        if column in columns:
+            counts = Counter(
+                row[column].strip()
+                for row in rows
+            )
+
+            print(f"{column}:")
+
+            for value, count in counts.items():
+                print(f"  {value!r}: {count}")
+
+
 def main() -> None:
     csv_files = sorted(RAW_DIR.glob("*.csv"))
 
@@ -223,6 +289,9 @@ def main() -> None:
 
     for file_path in daily_files:
         inspect_daily_date_order(file_path)
+
+    for file_path in csv_files:
+        inspect_values_and_quality(file_path)
 
 if __name__ == "__main__":
     main()
