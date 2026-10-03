@@ -360,6 +360,32 @@ def inspect_expected_parameter(file_path: Path) -> None:
     else:
         print("Result: FAIL")
 
+def inspect_encoding_and_headers(file_path: Path) -> None:
+    print("=" * 70)
+    print(f"ENCODING/HEADER VALIDATION: {file_path.name}")
+
+    try:
+        raw_bytes = file_path.read_bytes()
+        raw_bytes.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        print(f"UTF-8 decoding: FAIL ({error})")
+        return
+
+    print("UTF-8 decoding: PASS")
+
+    columns, _ = read_csv(file_path)
+
+    if not columns:
+        print("Header: FAIL (empty header)")
+        return
+
+    if any(not column.strip() for column in columns):
+        print("Header: FAIL (blank column name)")
+        return
+
+    print(f"Header: PASS ({len(columns)} columns)")
+    print(f"Columns: {columns}")
+
 
 def main() -> None:
     csv_files = sorted(RAW_DIR.glob("*.csv"))
@@ -395,6 +421,7 @@ def main() -> None:
         inspect_station_and_parameter(file_path)
         inspect_expected_station(file_path)
         inspect_expected_parameter(file_path)
+        inspect_encoding_and_headers(file_path)
 
 if __name__ == "__main__":
     main()
