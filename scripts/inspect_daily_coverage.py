@@ -4,45 +4,70 @@ from datetime import date, timedelta
 from pathlib import Path
 
 
-RAW_DIR = Path("data/raw")
+RAW_DAILY_DIR = Path("data/raw/daily")
 
 FILES = {
-    "01AF002": RAW_DIR / "wsc_01AF002_daily_20000101_20251231.csv",
-    "01AK003": RAW_DIR / "wsc_01AK003_daily_20000101_20251231.csv",
-    "01AO012": RAW_DIR / "wsc_01AO012_daily_20000101_20251231.csv",
-    "01AP003": RAW_DIR / "wsc_01AP003_daily_20000101_20251231.csv",
+    "01AF002": (
+        RAW_DAILY_DIR
+        / "01AF002"
+        / "wsc_01AF002_daily_20110101_20241231.csv"
+    ),
+    "01AK003": (
+        RAW_DAILY_DIR
+        / "01AK003"
+        / "wsc_01AK003_daily_20110101_20241231.csv"
+    ),
+    "01AO012": (
+        RAW_DAILY_DIR
+        / "01AO012"
+        / "wsc_01AO012_daily_20110101_20241231.csv"
+    ),
+    "01AP003": (
+        RAW_DAILY_DIR
+        / "01AP003"
+        / "wsc_01AP003_daily_20110101_20241231.csv"
+    ),
 }
 
 COMMON_START = date(2011, 1, 1)
-COMMON_END = date(2025, 2, 11)
+COMMON_END = date(2024, 12, 31)
 
 
-def read_dates(path: Path) -> set[date]:
-    """Read daily observation dates from a WSC CSV file."""
+def read_dates(path: Path) -> tuple[list[date], set[date]]:
+    """Read daily observation dates and detect duplicates."""
 
-    dates = set()
+    dates = []
+    seen_dates = set()
+    duplicate_dates = set()
 
     with path.open("r", encoding="utf-8-sig", newline="") as file:
         reader = csv.DictReader(file)
 
         for row in reader:
-            dates.add(date.fromisoformat(row["Date"]))
+            observation_date = date.fromisoformat(row["Date"])
 
-    return dates
+            if observation_date in seen_dates:
+                duplicate_dates.add(observation_date)
+
+            seen_dates.add(observation_date)
+            dates.append(observation_date)
+
+    return dates, duplicate_dates
 
 
-def inspect_station(station_id: str, path: Path) -> None:
-    """Print basic date coverage information for one station."""
+def inspect_station(station_id: str, path: Path) -> set[date]:
+    """Print basic date coverage information for one WSC station."""
 
-    dates = sorted(read_dates(path))
+    dates, duplicate_dates = read_dates(path)
+    sorted_dates = sorted(dates)
 
-    if not dates:
+    if not sorted_dates:
         print(f"{station_id}: no data")
-        return
+        return set()
 
     gaps = []
 
-    for previous, current in zip(dates, dates[1:]):
+    for previous, current in zip(sorted_dates, sorted_dates[1:]):
         gap_days = (current - previous).days
 
         if gap_days > 1:
@@ -50,9 +75,19 @@ def inspect_station(station_id: str, path: Path) -> None:
 
     print(f"\nStation: {station_id}")
     print(f"Rows: {len(dates)}")
-    print(f"First date: {dates[0]}")
-    print(f"Last date: {dates[-1]}")
-    print("Duplicate dates: 0")
+    print(f"Unique dates: {len(set(dates))}")
+    print(f"First date: {sorted_dates[0]}")
+    print(f"Last date: {sorted_dates[-1]}")
+    print(f"Duplicate dates: {len(duplicate_dates)}")
+
+    if duplicate_dates:
+        print(
+            "Duplicate date values: "
+            + ", ".join(
+                str(observation_date)
+                for observation_date in sorted(duplicate_dates)
+            )
+        )
 
     if gaps:
         largest_gap = max(gaps, key=lambda item: item[2])
@@ -66,6 +101,8 @@ def inspect_station(station_id: str, path: Path) -> None:
     else:
         print("Number of gaps: 0")
         print("Largest gap: none")
+
+    return set(dates)
 
 
 def inspect_common_coverage(
@@ -215,8 +252,10 @@ def main() -> None:
     station_dates = {}
 
     for station_id, path in FILES.items():
-        station_dates[station_id] = read_dates(path)
-        inspect_station(station_id, path)
+        station_dates[station_id] = inspect_station(
+            station_id,
+            path,
+        )
 
     inspect_common_coverage(station_dates)
     inspect_three_station_runs(station_dates)

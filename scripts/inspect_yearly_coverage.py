@@ -4,17 +4,33 @@ from datetime import date
 from pathlib import Path
 
 
-RAW_DIR = Path("data/raw")
+RAW_DAILY_DIR = Path("data/raw/daily")
 
 FILES = {
-    "01AF002": RAW_DIR / "wsc_01AF002_daily_20000101_20251231.csv",
-    "01AK003": RAW_DIR / "wsc_01AK003_daily_20000101_20251231.csv",
-    "01AO012": RAW_DIR / "wsc_01AO012_daily_20000101_20251231.csv",
-    "01AP003": RAW_DIR / "wsc_01AP003_daily_20000101_20251231.csv",
+    "01AF002": (
+        RAW_DAILY_DIR
+        / "01AF002"
+        / "wsc_01AF002_daily_20110101_20241231.csv"
+    ),
+    "01AK003": (
+        RAW_DAILY_DIR
+        / "01AK003"
+        / "wsc_01AK003_daily_20110101_20241231.csv"
+    ),
+    "01AO012": (
+        RAW_DAILY_DIR
+        / "01AO012"
+        / "wsc_01AO012_daily_20110101_20241231.csv"
+    ),
+    "01AP003": (
+        RAW_DAILY_DIR
+        / "01AP003"
+        / "wsc_01AP003_daily_20110101_20241231.csv"
+    ),
 }
 
 START_YEAR = 2011
-END_YEAR = 2025
+END_YEAR = 2024
 
 
 def inspect_station(station_id: str, path: Path) -> None:
