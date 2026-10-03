@@ -386,6 +386,53 @@ def inspect_encoding_and_headers(file_path: Path) -> None:
     print(f"Header: PASS ({len(columns)} columns)")
     print(f"Columns: {columns}")
 
+def inspect_row_structure(file_path: Path) -> None:
+    print("=" * 70)
+    print(f"ROW STRUCTURE VALIDATION: {file_path.name}")
+
+    try:
+        raw_text = file_path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        print("Unable to inspect rows because UTF-8 decoding failed.")
+        return
+
+    lines = raw_text.splitlines()
+
+    if not lines:
+        print("Empty file: FAIL")
+        return
+
+    header = lines[0].split(",")
+
+    expected_column_count = len(header)
+
+    malformed_rows = 0
+    empty_rows = 0
+
+    for line_number, line in enumerate(lines[1:], start=2):
+        if not line.strip():
+            empty_rows += 1
+            continue
+
+        fields = line.split(",")
+
+        if len(fields) != expected_column_count:
+            malformed_rows += 1
+            print(
+                f"Malformed row at line {line_number}: "
+                f"expected {expected_column_count} fields, "
+                f"found {len(fields)}"
+            )
+
+    print(f"Expected fields per row: {expected_column_count}")
+    print(f"Malformed rows: {malformed_rows}")
+    print(f"Empty rows: {empty_rows}")
+
+    if malformed_rows == 0 and empty_rows == 0:
+        print("Result: PASS")
+    else:
+        print("Result: REVIEW")
+
 
 def main() -> None:
     csv_files = sorted(RAW_DIR.glob("*.csv"))
@@ -422,6 +469,7 @@ def main() -> None:
         inspect_expected_station(file_path)
         inspect_expected_parameter(file_path)
         inspect_encoding_and_headers(file_path)
+        inspect_row_structure(file_path)
 
 if __name__ == "__main__":
     main()
