@@ -40,7 +40,10 @@ def show_dataset_overview(dataframe: pd.DataFrame) -> None:
     print("1. Dataset overview")
     print(f"   Rows: {len(dataframe)}")
     print(f"   Columns: {len(dataframe.columns)}")
-    print(f"   Date range: {dataframe['observation_date'].min().date()}")
+    print(
+        f"   Date range: "
+        f"{dataframe['observation_date'].min().date()}"
+    )
     print(
         f"              to "
         f"{dataframe['observation_date'].max().date()}"
@@ -140,8 +143,144 @@ def show_quality_summary(dataframe: pd.DataFrame) -> None:
             )
 
 
+def calculate_daily_changes(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Calculate day-to-day water-level changes within each station."""
+    result = dataframe.copy()
+
+    result["daily_change_m"] = (
+        result.groupby("station_id")["water_level_m"]
+        .diff()
+    )
+
+    return result
+
+
+def show_coverage_summary(dataframe: pd.DataFrame) -> None:
+    """Show calendar-day coverage and missing periods by station."""
+    print("\n5. Calendar-day coverage")
+
+    expected_dates = pd.date_range(
+        dataframe["observation_date"].min(),
+        dataframe["observation_date"].max(),
+        freq="D",
+    )
+
+    expected_days = len(expected_dates)
+
+    for station_id, station_data in dataframe.groupby(
+        "station_id",
+        sort=True,
+    ):
+        actual_dates = pd.DatetimeIndex(
+            station_data["observation_date"]
+        )
+
+        missing_dates = expected_dates.difference(actual_dates)
+
+        coverage_percent = (
+            len(actual_dates) / expected_days * 100
+        )
+
+        print(
+            f"   {station_id}: "
+            f"{len(actual_dates)}/{expected_days} days "
+            f"({coverage_percent:.2f}%)"
+        )
+
+        print(
+            f"      Missing days: {len(missing_dates)}"
+        )
+
+        if len(missing_dates) > 0:
+            print(
+                f"      First missing date: "
+                f"{missing_dates[0].date()}"
+            )
+            print(
+                f"      Last missing date: "
+                f"{missing_dates[-1].date()}"
+            )
+
+
+def show_distribution_summary(dataframe: pd.DataFrame) -> None:
+    """Show distribution statistics for each station."""
+    summary = (
+        dataframe.groupby("station_id")["water_level_m"]
+        .quantile([0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99])
+        .unstack()
+    )
+
+    print("\n6. Water-level distribution")
+
+    for station_id, row in summary.iterrows():
+        print(f"   {station_id}:")
+        print(f"      1st percentile:  {row[0.01]:.3f} m")
+        print(f"      5th percentile:  {row[0.05]:.3f} m")
+        print(f"      25th percentile: {row[0.25]:.3f} m")
+        print(f"      50th percentile: {row[0.50]:.3f} m")
+        print(f"      75th percentile: {row[0.75]:.3f} m")
+        print(f"      95th percentile: {row[0.95]:.3f} m")
+        print(f"      99th percentile: {row[0.99]:.3f} m")
+
+
+def show_daily_change_summary(
+    dataframe: pd.DataFrame,
+) -> None:
+    """Show distribution statistics for daily water-level changes."""
+    result = calculate_daily_changes(dataframe)
+
+    summary = (
+        result.groupby("station_id")["daily_change_m"]
+        .agg(
+            count="count",
+            minimum="min",
+            maximum="max",
+            mean="mean",
+            median="median",
+        )
+    )
+
+    print("\n7. Daily water-level change")
+
+    for station_id, row in summary.iterrows():
+        print(f"   {station_id}:")
+        print(f"      Valid changes: {int(row['count'])}")
+        print(f"      Minimum: {row['minimum']:.3f} m/day")
+        print(f"      Maximum: {row['maximum']:.3f} m/day")
+        print(f"      Mean: {row['mean']:.3f} m/day")
+        print(f"      Median: {row['median']:.3f} m/day")
+
+
+def show_largest_daily_rises(
+    dataframe: pd.DataFrame,
+) -> None:
+    """Show the largest observed one-day rises at each station."""
+    result = calculate_daily_changes(dataframe)
+
+    rises = result[result["daily_change_m"] > 0].copy()
+
+    print("\n8. Largest one-day rises")
+
+    for station_id, station_data in rises.groupby(
+        "station_id",
+        sort=True,
+    ):
+        largest = station_data.nlargest(
+            5,
+            "daily_change_m",
+        )
+
+        print(f"   {station_id}:")
+
+        for _, row in largest.iterrows():
+            print(
+                f"      {row['observation_date'].date()}: "
+                f"+{row['daily_change_m']:.3f} m"
+            )
+
+
 def main() -> None:
-    """Load and inspect the daily analysis dataset."""
+    """Run the daily exploratory analysis."""
     if not DATABASE_PATH.exists():
         raise FileNotFoundError(
             f"Database does not exist: {DATABASE_PATH}"
@@ -153,6 +292,10 @@ def main() -> None:
     show_missing_values(dataframe)
     show_station_summary(dataframe)
     show_quality_summary(dataframe)
+    show_coverage_summary(dataframe)
+    show_distribution_summary(dataframe)
+    show_daily_change_summary(dataframe)
+    show_largest_daily_rises(dataframe)
 
 
 if __name__ == "__main__":
