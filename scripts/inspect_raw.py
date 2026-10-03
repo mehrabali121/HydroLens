@@ -303,8 +303,36 @@ EXPECTED_STATIONS = {
     "gagetown": "01AO012",
     "oak_point": "01AP003",
 }
+
 EXPECTED_DAILY_PARAMETER = "water level/niveau"
 EXPECTED_UNIT_PARAMETER = "46"
+
+EXPECTED_DAILY_COLUMNS = {
+    " ID",
+    "Date",
+    "Parameter/Paramètre",
+    "Value/Valeur",
+    "Symbol/Symbole",
+}
+
+EXPECTED_UNIT_COLUMNS = {
+    " ID",
+    "Date",
+    "Parameter/Paramètre",
+    "Value/Valeur",
+    "Qualifier/Qualificatif",
+    "Symbol/Symbole",
+    "Approval/Approbation",
+    "Grade/Classification",
+    "Qualifiers/Qualificatifs",
+}
+
+REQUIRED_VALUE_COLUMNS = {
+    " ID",
+    "Date",
+    "Parameter/Paramètre",
+    "Value/Valeur",
+}
 
 def inspect_expected_station(file_path: Path) -> None:
     columns, rows = read_csv(file_path)
@@ -433,6 +461,43 @@ def inspect_row_structure(file_path: Path) -> None:
     else:
         print("Result: REVIEW")
 
+def inspect_required_fields(file_path: Path) -> None:
+    columns, rows = read_csv(file_path)
+
+    print("=" * 70)
+    print(f"REQUIRED FIELD VALIDATION: {file_path.name}")
+
+    if "unit" in file_path.name.lower():
+        expected_columns = EXPECTED_UNIT_COLUMNS
+    else:
+        expected_columns = EXPECTED_DAILY_COLUMNS
+
+    missing_columns = expected_columns - set(columns)
+
+    if missing_columns:
+        print(f"Missing expected columns: {sorted(missing_columns)}")
+        print("Result: FAIL")
+        return
+
+    print("Expected columns: PASS")
+
+    empty_fields: Counter[str] = Counter()
+
+    for row in rows:
+        for column in REQUIRED_VALUE_COLUMNS:
+            if not row[column].strip():
+                empty_fields[column] += 1
+
+    if empty_fields:
+        print("Empty required fields:")
+        for column, count in empty_fields.items():
+            print(f"  {column!r}: {count}")
+
+        print("Result: FAIL")
+    else:
+        print("Empty required fields: 0")
+        print("Result: PASS")
+
 
 def main() -> None:
     csv_files = sorted(RAW_DIR.glob("*.csv"))
@@ -470,6 +535,7 @@ def main() -> None:
         inspect_expected_parameter(file_path)
         inspect_encoding_and_headers(file_path)
         inspect_row_structure(file_path)
+        inspect_required_fields(file_path)
 
 if __name__ == "__main__":
     main()
