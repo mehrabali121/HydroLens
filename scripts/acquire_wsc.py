@@ -6,7 +6,7 @@ from urllib.request import urlopen
 
 
 BASE_URL = "https://wateroffice.ec.gc.ca/services/daily_data/csv/inline"
-RAW_DIR = Path("data/raw")
+RAW_DAILY_DIR = Path("data/raw/daily")
 
 
 def parse_date(value: str) -> date:
@@ -48,7 +48,7 @@ def download_daily_water_level(
 
     url = f"{BASE_URL}?{urlencode(params)}"
 
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     with urlopen(url, timeout=30) as response:
         data = response.read()
@@ -66,13 +66,15 @@ def build_output_path(
     start_date: str,
     end_date: str,
 ) -> Path:
-    """Create the raw output filename."""
+    """Create the raw output path for one station."""
 
     start_text = start_date.replace("-", "")
     end_text = end_date.replace("-", "")
 
-    return RAW_DIR / (
-        f"wsc_{station_id}_daily_{start_text}_{end_text}.csv"
+    return (
+        RAW_DAILY_DIR
+        / station_id
+        / f"wsc_{station_id}_daily_{start_text}_{end_text}.csv"
     )
 
 
