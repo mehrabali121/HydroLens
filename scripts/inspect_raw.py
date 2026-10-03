@@ -261,6 +261,106 @@ def inspect_values_and_quality(file_path: Path) -> None:
                 print(f"  {value!r}: {count}")
 
 
+def inspect_station_and_parameter(file_path: Path) -> None:
+    columns, rows = read_csv(file_path)
+
+    if not rows:
+        return
+
+    station_column = " ID"
+    parameter_column = "Parameter/Paramètre"
+
+    if station_column not in columns:
+        print("=" * 70)
+        print(f"STATION/PARAMETER VALIDATION: {file_path.name}")
+        print("Missing station ID column")
+        return
+
+    if parameter_column not in columns:
+        print("=" * 70)
+        print(f"STATION/PARAMETER VALIDATION: {file_path.name}")
+        print("Missing parameter column")
+        return
+
+    station_ids = Counter(row[station_column] for row in rows)
+    parameters = Counter(row[parameter_column] for row in rows)
+
+    print("=" * 70)
+    print(f"STATION/PARAMETER VALIDATION: {file_path.name}")
+
+    print("Station IDs:")
+    for station_id, count in station_ids.items():
+        print(f"  {station_id!r}: {count}")
+
+    print("Parameters:")
+    for parameter, count in parameters.items():
+        print(f"  {parameter!r}: {count}")
+
+
+EXPECTED_STATIONS = {
+    "grand_falls": "01AF002",
+    "fredericton": "01AK003",
+    "gagetown": "01AO012",
+    "oak_point": "01AP003",
+}
+EXPECTED_DAILY_PARAMETER = "water level/niveau"
+EXPECTED_UNIT_PARAMETER = "46"
+
+def inspect_expected_station(file_path: Path) -> None:
+    columns, rows = read_csv(file_path)
+
+    if not rows or " ID" not in columns:
+        return
+
+    station_ids = set(row[" ID"] for row in rows)
+
+    expected_station = None
+
+    for station_name, station_id in EXPECTED_STATIONS.items():
+        if station_name in file_path.name.lower():
+            expected_station = station_id
+            break
+
+    print("=" * 70)
+    print(f"EXPECTED STATION CHECK: {file_path.name}")
+
+    if expected_station is None:
+        print("No expected station mapping found for this filename.")
+        return
+
+    print(f"Expected station: {expected_station}")
+    print(f"Station IDs found: {sorted(station_ids)}")
+
+    if station_ids == {expected_station}:
+        print("Result: PASS")
+    else:
+        print("Result: FAIL")
+
+def inspect_expected_parameter(file_path: Path) -> None:
+    columns, rows = read_csv(file_path)
+
+    if not rows or "Parameter/Paramètre" not in columns:
+        return
+
+    parameters = set(row["Parameter/Paramètre"] for row in rows)
+
+    if "unit" in file_path.name.lower():
+        expected_parameter = EXPECTED_UNIT_PARAMETER
+    else:
+        expected_parameter = EXPECTED_DAILY_PARAMETER
+
+    print("=" * 70)
+    print(f"EXPECTED PARAMETER CHECK: {file_path.name}")
+
+    print(f"Expected parameter: {expected_parameter}")
+    print(f"Parameters found: {sorted(parameters)}")
+
+    if parameters == {expected_parameter}:
+        print("Result: PASS")
+    else:
+        print("Result: FAIL")
+
+
 def main() -> None:
     csv_files = sorted(RAW_DIR.glob("*.csv"))
 
@@ -292,6 +392,9 @@ def main() -> None:
 
     for file_path in csv_files:
         inspect_values_and_quality(file_path)
+        inspect_station_and_parameter(file_path)
+        inspect_expected_station(file_path)
+        inspect_expected_parameter(file_path)
 
 if __name__ == "__main__":
     main()
