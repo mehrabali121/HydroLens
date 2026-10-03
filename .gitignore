@@ -1,9 +1,10 @@
 # Python virtual environment
 .venv/
 
-# Python cache files
+# Python cache
 __pycache__/
 *.py[cod]
+*$py.class
 
 # Test and tool caches
 .pytest_cache/
@@ -13,6 +14,19 @@ __pycache__/
 # Coverage reports
 .coverage
 htmlcov/
+
+# Generated processed data
+data/processed/
+
+# Large historical/raw downloads
+data/raw/*.zip
+data/raw/*.sqlite
+data/raw/*.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
 
 # Environment/secrets files
 .env
