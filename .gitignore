@@ -19,9 +19,13 @@ htmlcov/
 data/processed/
 
 # Large historical/raw downloads
-data/raw/*.zip
-data/raw/*.sqlite
-data/raw/*.db
+data/raw/**/*.zip
+data/raw/**/*.sqlite
+data/raw/**/*.db
+data/raw/daily/*/wsc_*.csv
+
+# Small reference/sample datasets
+# These remain tracked by Git.
 
 # Temporary files
 *.tmp
