@@ -143,13 +143,26 @@ def show_quality_summary(dataframe: pd.DataFrame) -> None:
             )
 
 
-def calculate_daily_changes(dataframe: pd.DataFrame) -> pd.DataFrame:
-    """Calculate day-to-day water-level changes within each station."""
+def calculate_observation_changes(
+    dataframe: pd.DataFrame,
+) -> pd.DataFrame:
+    """Calculate changes and elapsed time between observations."""
     result = dataframe.copy()
 
-    result["daily_change_m"] = (
+    result["elapsed_days"] = (
+        result.groupby("station_id")["observation_date"]
+        .diff()
+        .dt.total_seconds()
+        .div(86400)
+    )
+
+    result["level_change_m"] = (
         result.groupby("station_id")["water_level_m"]
         .diff()
+    )
+
+    result["rate_m_per_day"] = (
+        result["level_change_m"] / result["elapsed_days"]
     )
 
     return result
@@ -206,7 +219,17 @@ def show_distribution_summary(dataframe: pd.DataFrame) -> None:
     """Show distribution statistics for each station."""
     summary = (
         dataframe.groupby("station_id")["water_level_m"]
-        .quantile([0.01, 0.05, 0.25, 0.50, 0.75, 0.95, 0.99])
+        .quantile(
+            [
+                0.01,
+                0.05,
+                0.25,
+                0.50,
+                0.75,
+                0.95,
+                0.99,
+            ]
+        )
         .unstack()
     )
 
@@ -223,43 +246,169 @@ def show_distribution_summary(dataframe: pd.DataFrame) -> None:
         print(f"      99th percentile: {row[0.99]:.3f} m")
 
 
-def show_daily_change_summary(
+def show_observation_spacing(
     dataframe: pd.DataFrame,
 ) -> None:
-    """Show distribution statistics for daily water-level changes."""
-    result = calculate_daily_changes(dataframe)
+    """Show spacing between consecutive observations."""
+    result = calculate_observation_changes(dataframe)
 
-    summary = (
-        result.groupby("station_id")["daily_change_m"]
-        .agg(
-            count="count",
-            minimum="min",
-            maximum="max",
-            mean="mean",
-            median="median",
-        )
-    )
+    print("\n7. Observation spacing")
 
-    print("\n7. Daily water-level change")
+    for station_id, station_data in result.groupby(
+        "station_id",
+        sort=True,
+    ):
+        spacing = station_data["elapsed_days"].dropna()
 
-    for station_id, row in summary.iterrows():
         print(f"   {station_id}:")
-        print(f"      Valid changes: {int(row['count'])}")
-        print(f"      Minimum: {row['minimum']:.3f} m/day")
-        print(f"      Maximum: {row['maximum']:.3f} m/day")
-        print(f"      Mean: {row['mean']:.3f} m/day")
-        print(f"      Median: {row['median']:.3f} m/day")
+        print(f"      Observation intervals: {len(spacing)}")
+        print(
+            f"      Minimum interval: "
+            f"{spacing.min():.0f} day(s)"
+        )
+        print(
+            f"      Median interval: "
+            f"{spacing.median():.0f} day(s)"
+        )
+        print(
+            f"      Maximum interval: "
+            f"{spacing.max():.0f} day(s)"
+        )
+
+        longer_than_one_day = station_data[
+            station_data["elapsed_days"] > 1
+        ].copy()
+
+        print(
+            f"      Intervals longer than 1 day: "
+            f"{len(longer_than_one_day)}"
+        )
+
+        for _, row in longer_than_one_day.iterrows():
+            previous_date = (
+                row["observation_date"]
+                - pd.to_timedelta(
+                    row["elapsed_days"],
+                    unit="D",
+                )
+            )
+
+            print(
+                f"         "
+                f"{previous_date.date()} "
+                f"to "
+                f"{row['observation_date'].date()}: "
+                f"{row['elapsed_days']:.0f} day(s)"
+            )
 
 
-def show_largest_daily_rises(
+def show_change_summary(
     dataframe: pd.DataFrame,
 ) -> None:
-    """Show the largest observed one-day rises at each station."""
-    result = calculate_daily_changes(dataframe)
+    """Show level-change and rate-of-change distributions."""
+    result = calculate_observation_changes(dataframe)
 
-    rises = result[result["daily_change_m"] > 0].copy()
+    print("\n8. Change and rate summary")
 
-    print("\n8. Largest one-day rises")
+    for station_id, station_data in result.groupby(
+        "station_id",
+        sort=True,
+    ):
+        valid_changes = station_data.dropna(
+            subset=[
+                "level_change_m",
+                "rate_m_per_day",
+            ]
+        )
+
+        change_quantiles = valid_changes[
+            "level_change_m"
+        ].quantile(
+            [
+                0.01,
+                0.05,
+                0.50,
+                0.95,
+                0.99,
+            ]
+        )
+
+        rate_quantiles = valid_changes[
+            "rate_m_per_day"
+        ].quantile(
+            [
+                0.01,
+                0.05,
+                0.50,
+                0.95,
+                0.99,
+            ]
+        )
+
+        print(f"   {station_id}:")
+
+        print(
+            "      Level change "
+            "(m between observations):"
+        )
+        print(
+            f"         1st percentile:  "
+            f"{change_quantiles[0.01]:.3f}"
+        )
+        print(
+            f"         5th percentile:  "
+            f"{change_quantiles[0.05]:.3f}"
+        )
+        print(
+            f"         Median:           "
+            f"{change_quantiles[0.50]:.3f}"
+        )
+        print(
+            f"         95th percentile: "
+            f"{change_quantiles[0.95]:.3f}"
+        )
+        print(
+            f"         99th percentile: "
+            f"{change_quantiles[0.99]:.3f}"
+        )
+
+        print(
+            "      Rate of change "
+            "(m/day):"
+        )
+        print(
+            f"         1st percentile:  "
+            f"{rate_quantiles[0.01]:.3f}"
+        )
+        print(
+            f"         5th percentile:  "
+            f"{rate_quantiles[0.05]:.3f}"
+        )
+        print(
+            f"         Median:           "
+            f"{rate_quantiles[0.50]:.3f}"
+        )
+        print(
+            f"         95th percentile: "
+            f"{rate_quantiles[0.95]:.3f}"
+        )
+        print(
+            f"         99th percentile: "
+            f"{rate_quantiles[0.99]:.3f}"
+        )
+
+
+def show_largest_rises(
+    dataframe: pd.DataFrame,
+) -> None:
+    """Show the largest rises while displaying elapsed time."""
+    result = calculate_observation_changes(dataframe)
+
+    rises = result[
+        result["level_change_m"] > 0
+    ].copy()
+
+    print("\n9. Largest observed rises")
 
     for station_id, station_data in rises.groupby(
         "station_id",
@@ -267,15 +416,51 @@ def show_largest_daily_rises(
     ):
         largest = station_data.nlargest(
             5,
-            "daily_change_m",
+            "level_change_m",
         )
 
         print(f"   {station_id}:")
 
         for _, row in largest.iterrows():
             print(
-                f"      {row['observation_date'].date()}: "
-                f"+{row['daily_change_m']:.3f} m"
+                f"      "
+                f"{row['observation_date'].date()}: "
+                f"+{row['level_change_m']:.3f} m "
+                f"over {row['elapsed_days']:.0f} day(s) "
+                f"({row['rate_m_per_day']:.3f} m/day)"
+            )
+
+
+def show_largest_rates(
+    dataframe: pd.DataFrame,
+) -> None:
+    """Show the largest positive rates of water-level rise."""
+    result = calculate_observation_changes(dataframe)
+
+    rises = result[
+        result["rate_m_per_day"] > 0
+    ].copy()
+
+    print("\n10. Largest positive rates of rise")
+
+    for station_id, station_data in rises.groupby(
+        "station_id",
+        sort=True,
+    ):
+        largest = station_data.nlargest(
+            5,
+            "rate_m_per_day",
+        )
+
+        print(f"   {station_id}:")
+
+        for _, row in largest.iterrows():
+            print(
+                f"      "
+                f"{row['observation_date'].date()}: "
+                f"+{row['rate_m_per_day']:.3f} m/day "
+                f"({row['level_change_m']:.3f} m "
+                f"over {row['elapsed_days']:.0f} day(s))"
             )
 
 
@@ -294,8 +479,10 @@ def main() -> None:
     show_quality_summary(dataframe)
     show_coverage_summary(dataframe)
     show_distribution_summary(dataframe)
-    show_daily_change_summary(dataframe)
-    show_largest_daily_rises(dataframe)
+    show_observation_spacing(dataframe)
+    show_change_summary(dataframe)
+    show_largest_rises(dataframe)
+    show_largest_rates(dataframe)
 
 
 if __name__ == "__main__":
