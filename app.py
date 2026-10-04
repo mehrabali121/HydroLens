@@ -34,37 +34,64 @@ STATIONS = pd.DataFrame(
 )
 
 
-STATION_RESULTS = pd.DataFrame(
-    [
+RESULTS_DIR = PROJECT_ROOT / "results"
+
+
+@st.cache_data
+def load_lead_times() -> pd.DataFrame:
+    """Load one row per matched episode, made by the pipeline."""
+    return pd.read_csv(RESULTS_DIR / "historical_lead_times.csv")
+
+
+@st.cache_data
+def load_station_results() -> pd.DataFrame:
+    """Build the per-station table from the pipeline's result files."""
+    summary = pd.read_csv(
+        RESULTS_DIR / "historical_association_summary.csv"
+    )
+    lead_times = load_lead_times()
+
+    results = pd.DataFrame(
         {
-            "station_id": "01AK003",
-            "location": "Fredericton",
-            "matched": 29,
-            "evaluable": 59,
-            "matched_percent": 49.2,
-            "mean_lead_time": 0.66,
-            "median_lead_time": 1.0,
-        },
-        {
-            "station_id": "01AO012",
-            "location": "Gagetown",
-            "matched": 16,
-            "evaluable": 55,
-            "matched_percent": 29.1,
-            "mean_lead_time": 0.88,
-            "median_lead_time": 1.0,
-        },
-        {
-            "station_id": "01AP003",
-            "location": "Oak Point",
-            "matched": 16,
-            "evaluable": 58,
-            "matched_percent": 27.6,
-            "mean_lead_time": 0.81,
-            "median_lead_time": 1.0,
-        },
-    ]
-)
+            "station_id": summary["downstream_station_id"],
+            "matched": summary["matched_episodes"],
+            "evaluable": summary["primary_match_evaluable"],
+        }
+    )
+
+    results["matched_percent"] = (
+        results["matched"] / results["evaluable"] * 100
+    )
+
+    lead_stats = (
+        lead_times.groupby("downstream_station_id")["lead_time_days"]
+        .agg(["mean", "median"])
+        .rename(
+            columns={
+                "mean": "mean_lead_time",
+                "median": "median_lead_time",
+            }
+        )
+    )
+
+    results = results.merge(
+        lead_stats,
+        left_on="station_id",
+        right_index=True,
+        how="left",
+    )
+
+    results = results.merge(
+        STATIONS[["station_id", "location"]],
+        on="station_id",
+        how="left",
+    )
+
+    return results
+
+
+LEAD_TIMES = load_lead_times()
+STATION_RESULTS = load_station_results()
 
 
 st.set_page_config(
@@ -124,17 +151,22 @@ st.header("Historical Analysis at a Glance")
 
 col1, col2, col3, col4 = st.columns(4)
 
+lead_days = LEAD_TIMES["lead_time_days"]
+
 with col1:
-    st.metric("Stations Analyzed", "4")
+    st.metric("Stations Analyzed", len(STATIONS))
 
 with col2:
-    st.metric("Matched Associations", "61")
+    st.metric("Matched Associations", len(LEAD_TIMES))
 
 with col3:
-    st.metric("Median Lead Time", "1 day")
+    st.metric("Median Lead Time", f"{lead_days.median():.0f} day")
 
 with col4:
-    st.metric("Observed Range", "0–2 days")
+    st.metric(
+        "Observed Range",
+        f"{lead_days.min()}–{lead_days.max()} days",
+    )
 
 
 st.divider()
@@ -174,9 +206,10 @@ with station_col4:
     )
 
 st.caption(
-    "Matched proportion is calculated under HydroLens's historical "
-    "episode-matching methodology and should not be interpreted as a "
-    "forecast probability."
+    "Evaluable episodes leave out cases where downstream data was "
+    "missing or the downstream station was already rising. "
+    "Matched proportion = matched episodes / evaluable episodes. "
+    "It is a historical rate, not a forecast probability."
 )
 
 
@@ -257,8 +290,8 @@ with lead_col1:
         st.image(
             str(lead_time_figure),
             caption=(
-                "Observed lead times among 61 matched historical "
-                "upstream/downstream rise-episode associations."
+                f"Observed lead times among {len(LEAD_TIMES)} matched "
+                "historical upstream/downstream rise-episode associations."
             ),
             width="stretch",
         )
@@ -287,46 +320,23 @@ with lead_col2:
 
 st.divider()
 
-st.header("Association Outcomes & Historical Backtest")
+st.header("Association Outcomes")
 
 association_figure = FIGURES_DIR / "historical_association_outcomes.png"
-backtest_figure = FIGURES_DIR / "historical_backtest_lag_distribution.png"
 
-association_col, backtest_col = st.columns(2)
-
-with association_col:
-    st.subheader("Historical Association Outcomes")
-
-    if association_figure.exists():
-        st.image(
-            str(association_figure),
-            caption=(
-                "Historical outcomes for each downstream station under "
-                "the episode-matching methodology."
-            ),
-            width="stretch",
-        )
-    else:
-        st.warning(
-            "The historical association-outcomes figure is unavailable."
-        )
-
-with backtest_col:
-    st.subheader("Historical Backtest")
-
-    if backtest_figure.exists():
-        st.image(
-            str(backtest_figure),
-            caption=(
-                "Observed lag distribution used to validate the "
-                "historical matching and lead-time workflow."
-            ),
-            width="stretch",
-        )
-    else:
-        st.warning(
-            "The historical backtest figure is unavailable."
-        )
+if association_figure.exists():
+    st.image(
+        str(association_figure),
+        caption=(
+            "Historical outcomes for each downstream station under "
+            "the episode-matching methodology."
+        ),
+        width="stretch",
+    )
+else:
+    st.warning(
+        "The historical association-outcomes figure is unavailable."
+    )
 
 
 st.divider()
@@ -345,7 +355,6 @@ with method_col:
 4. Group related rises into episodes.
 5. Match downstream episodes occurring 0–2 days after upstream episodes.
 6. Calculate observed lead times for matched historical cases.
-7. Backtest the matching and lag rules against the historical outputs.
 """
     )
 
