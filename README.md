@@ -6,96 +6,54 @@
 
 **Live Dashboard:** https://hydro-lens.streamlit.app/
 
-HydroLens is a reproducible Python and SQL data-analysis pipeline with an interactive Streamlit dashboard for investigating historical water-level rise events and upstream/downstream temporal relationships between hydrometric monitoring stations in the Saint John River basin.
-
-The project detects historical water-level rise events, groups them into episodes, examines upstream/downstream temporal associations, summarizes observed lead times in matched historical cases, and presents the results through an interactive dashboard.
+HydroLens is a reproducible Python and SQL data pipeline with an interactive Streamlit dashboard. It looks at 14 years (2011 to 2024) of daily water-level data from four Water Survey of Canada stations on the Saint John River, from Grand Falls down to Oak Point, and asks: when the river rises sharply upstream, how often does a rise follow downstream, and how many days later?
 
 This is an academic portfolio project. It is not an operational flood-warning, forecasting, or emergency-response system.
 
+## How It Works
+
+1. **Clean and store** about 19,550 daily readings in a SQLite database. Each reading is keyed by station and date, so duplicates are rejected.
+2. **Detect rise events.** A day counts as a significant rise when the level goes up by at least that station's 95th percentile of daily rises. Each station gets its own threshold (0.62 m at Grand Falls, 0.52 m at Fredericton, 0.30 m at Gagetown, 0.23 m at Oak Point) because stations measure from different reference levels. Changes are only calculated between consecutive days, so gaps in the data never produce fake jumps. Result: 406 rise events.
+3. **Group events into episodes.** Rises at the same station with no more than one quiet day between them are one episode. Result: 229 episodes.
+4. **Match upstream to downstream.** For each Grand Falls episode, look for a downstream episode that starts 0 to 2 days later and pick the nearest one. Widening the window from 2 to 3 days added no new matches, while 5 to 10 days started pairing rises a week apart.
+5. **Classify every unmatched case** before counting it. If downstream data was missing, or the downstream station was already rising, the case is left out of the match rate instead of being counted as "no rise."
+6. **Calculate lead times** and export the results for the dashboard.
+
+## Historical Analysis Results
+
+There were 61 matched upstream/downstream episode pairs.
+
+- 22 same-day, 32 one-day, and 7 two-day lead times
+- Median lead time: 1 day (mean about 0.75 days)
+
+Match rate = matched ÷ evaluable, where evaluable leaves out episodes with missing downstream data or where the downstream station was already rising.
+
+| Downstream station | Matched | Evaluable | Match rate |
+| --- | --- | --- | --- |
+| `01AK003` Fredericton | 29 | 55 | 52.7% |
+| `01AO012` Gagetown | 16 | 51 | 31.4% |
+| `01AP003` Oak Point | 16 | 55 | 29.1% |
+
+These are historical rates under this project's method. They are not forecasts, causal estimates, or guaranteed warning times.
+
 ## Interactive Dashboard
 
-The public HydroLens dashboard is available at:
+The dashboard reads its numbers from the pipeline's output in `results/`, so it always matches the latest pipeline run. It shows:
 
-**https://hydro-lens.streamlit.app/**
+- overall analysis metrics
+- per-station match counts, evaluable counts, and match rates
+- a comparison of the downstream stations
+- lead-time charts
+- association outcomes for each station
+- methodology and interpretation limits
 
-The dashboard provides:
-
-- high-level historical analysis metrics
-- interactive downstream-station exploration
-- station-level matched episode statistics
-- interactive comparison of downstream stations
-- historical lead-time visualizations
-- historical association outcomes
-- historical backtest results
-- methodology and interpretation limitations
-
-Run the dashboard locally with:
+Run it locally with:
 
 ```powershell
 python -m streamlit run app.py
 ```
 
-## Project Status
-
-The core historical analysis pipeline and interactive dashboard are implemented, including:
-
-- hydrometric data acquisition and validation
-- daily data cleaning and normalization
-- SQLite storage and verification
-- exploratory water-level analysis
-- historical rise-event detection
-- rise-episode construction
-- upstream/downstream episode matching
-- historical association classification
-- lead-time calculation and summary
-- historical backtesting
-- visualization
-- interactive Streamlit dashboard
-- automated pytest tests
-- Streamlit application smoke testing
-- GitHub Actions continuous integration
-- reproducible pinned Python dependencies
-
-## Technologies
-
-- Python 3.14
-- pandas
-- SQLite
-- matplotlib
-- Streamlit
-- pytest
-- Git and GitHub
-- GitHub Actions
-
-## Important Interpretation
-
-The analysis describes historical temporal associations in the available data.
-
-A matched upstream/downstream event does not establish causation, and historical lead times should not be interpreted as guaranteed future warning times. Missing observations, station-specific behavior, event-definition choices, and the historical matching methodology all affect the results.
-
-The dashboard presents historical analytical results and is not an operational forecasting or emergency-warning application.
-
-## Repository Structure
-
-```text
-HydroLens/
-|-- .github/workflows/    GitHub Actions CI
-|-- data/
-|   |-- metadata/         Data-source documentation
-|   |-- raw/              Raw and sample hydrometric data
-|   `-- processed/        Generated cleaned data, database, and analysis outputs
-|-- reports/
-|   `-- figures/          Generated analysis visualizations
-|-- scripts/              Data acquisition, validation, analysis, and visualization scripts
-|-- tests/                Automated pytest and Streamlit application tests
-|-- app.py                Interactive Streamlit dashboard
-|-- requirements.txt      Pinned Python dependencies
-`-- README.md             Project documentation
-```
-
-The repository tracks source code, tests, documentation, sample/reference data, and generated figures. Larger raw downloads and generated processed datasets, including the SQLite database, are excluded from Git and are intended to be recreated through the analysis pipeline.
-
-## Reproducing the Environment
+## Running the Project
 
 Create and activate a virtual environment:
 
@@ -111,71 +69,30 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Verify the environment and run the automated tests:
+Raw data files are not stored in Git. Download each station once:
 
 ```powershell
-python -m pip check
-python -m pytest -v
+python scripts/acquire_wsc.py --station 01AF002 --start 2011-01-01 --end 2024-12-31
+python scripts/acquire_wsc.py --station 01AK003 --start 2011-01-01 --end 2024-12-31
+python scripts/acquire_wsc.py --station 01AO012 --start 2011-01-01 --end 2024-12-31
+python scripts/acquire_wsc.py --station 01AP003 --start 2011-01-01 --end 2024-12-31
 ```
 
-Run the interactive dashboard:
+Run the full pipeline with one command:
 
 ```powershell
-python -m streamlit run app.py
+python run_pipeline.py
 ```
 
-The project currently targets Python 3.14. Dependency versions are pinned in `requirements.txt`, and the same dependency file is used by the GitHub Actions CI workflow.
-
-## Historical Analysis Results
-
-The historical matching analysis identified 61 matched upstream/downstream rise-episode associations.
-
-Observed lead times among these matched cases were:
-
-- 22 same-day associations
-- 32 one-day associations
-- 7 two-day associations
-- median lead time: 1 day
-- mean lead time: approximately 0.75 days
-- observed range: 0 to 2 days
-
-Historical matched proportions differed by downstream station:
-
-- `01AK003`: 29 of 59 evaluable upstream episodes matched (49.2%)
-- `01AO012`: 16 of 55 evaluable upstream episodes matched (29.1%)
-- `01AP003`: 16 of 58 evaluable upstream episodes matched (27.6%)
-
-These statistics describe the historical matching methodology used in this project. They are not forecasts, causal estimates, or guaranteed future warning times.
-
-## Visualizations
-
-### Historical Association Outcomes
-
-![Historical association outcomes](reports/figures/historical_association_outcomes.png)
-
-Shows the historical association outcomes for each downstream station under the project's episode-matching methodology.
-
-### Historical Lead-Time Distribution
-
-![Historical lead-time distribution](reports/figures/historical_lead_time_distribution.png)
-
-Shows the distribution of observed 0-, 1-, and 2-day lead times across the 61 matched historical associations.
-
-### Lead Time by Downstream Station
-
-![Lead time by downstream station](reports/figures/lead_time_by_downstream_station.png)
-
-Shows how observed historical lead times differed across the downstream stations.
-
-### Historical Backtest Lag Distribution
-
-![Historical backtest lag distribution](reports/figures/historical_backtest_lag_distribution.png)
-
-Shows the lag distribution used in the historical backtesting workflow.
+This runs every step in order, stops if any step fails, and copies the final results into `results/`. It can be run again at any time and gives the same results.
 
 ## Testing
 
-HydroLens includes automated pytest tests covering core historical-analysis rules and a Streamlit application smoke test.
+HydroLens has 21 automated tests:
+
+- 19 unit tests that call the project's own functions with small hand-made data. They cover daily change calculation (including gaps in the data and keeping stations separate), threshold calculation, rise detection, episode grouping, upstream/downstream matching, classification of missing data, and lead times.
+- 1 test that checks the result files agree with each other
+- 1 smoke test that checks the dashboard runs without errors
 
 Run all tests with:
 
@@ -183,55 +100,47 @@ Run all tests with:
 python -m pytest -v
 ```
 
-The Streamlit smoke test verifies that the dashboard can execute successfully and render its primary application title without Streamlit exceptions.
+GitHub Actions runs the test suite on every push and pull request to `main`.
 
-GitHub Actions runs the automated test suite on pushes and pull requests to the `main` branch.
+## Repository Structure
 
-## Reproducibility
+```text
+HydroLens/
+|-- .github/workflows/    GitHub Actions CI
+|-- data/
+|   |-- metadata/         Data source documentation
+|   |-- raw/              Raw data (sample files only in Git)
+|   `-- processed/        Generated data and SQLite database (not in Git)
+|-- reports/figures/      Generated charts
+|-- results/              Final result files the dashboard reads
+|-- scripts/              Pipeline steps
+|   `-- exploration/      Scripts used to explore the data and choose settings
+|-- tests/                Automated tests
+|-- app.py                Streamlit dashboard
+|-- run_pipeline.py       Runs the full pipeline in order
+|-- pytest.ini            Test settings
+|-- requirements.txt      Pinned Python dependencies
+`-- README.md
+```
 
-HydroLens is structured as a script-based analytical pipeline rather than a notebook-only analysis.
+## Technologies
 
-The repository includes:
-
-- documented data provenance
-- reproducible analysis scripts
-- pinned Python dependencies
-- SQLite-based analytical storage
-- generated analytical figures
-- automated tests
-- continuous integration
-- an executable Streamlit dashboard
-
-Generated processed datasets and the local SQLite database are excluded from version control and can be recreated through the project pipeline.
+- Python 3.14
+- pandas
+- SQLite
+- matplotlib
+- Streamlit
+- pytest
+- Git, GitHub and GitHub Actions
 
 ## Limitations
 
-HydroLens should be interpreted as a historical analytical project.
-
-The results are affected by:
+The results depend on:
 
 - data availability and missing observations
-- station-specific hydrological behavior
-- event-detection thresholds
-- episode-construction rules
-- the selected 0–2 day historical matching window
-- the distinction between temporal association and causation
+- each station's own behavior
+- the 95th percentile rise threshold
+- the episode grouping rule
+- the 0 to 2 day matching window
 
-Observed historical lead times should not be treated as guaranteed future lead times or operational warning periods.
-
-## Portfolio Focus
-
-HydroLens demonstrates practical experience with:
-
-- Python data engineering and analysis
-- pandas time-series processing
-- relational data storage with SQLite
-- reproducible analytical pipelines
-- historical event-matching logic
-- data visualization
-- interactive dashboard development with Streamlit
-- automated software testing
-- continuous integration
-- Git/GitHub project workflow
-- technical documentation
-- careful interpretation of analytical results
+A matched upstream/downstream pair shows that two rises happened close together in time. It does not prove that one caused the other, and past lead times are not guaranteed future warning times.
