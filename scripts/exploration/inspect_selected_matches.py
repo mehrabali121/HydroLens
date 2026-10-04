@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EPISODE_FILE = PROJECT_ROOT / "data" / "processed" / "events" / "rise_episodes.csv"
 
 UPSTREAM_STATION = "01AF002"

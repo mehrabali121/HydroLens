@@ -84,6 +84,10 @@ def main() -> None:
     with sqlite3.connect(DATABASE_PATH) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
 
+        # Remove rows from any earlier run so the pipeline can be
+        # run again without hitting the primary key constraint.
+        connection.execute("DELETE FROM daily_observations")
+
         total_rows_loaded = 0
 
         for station_id in STATIONS:

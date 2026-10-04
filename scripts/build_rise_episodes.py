@@ -80,11 +80,12 @@ def group_station_events(
 
 def build_episode_records(
     events: pd.DataFrame,
+    stations: list[str] = STATIONS,
 ) -> pd.DataFrame:
     """Build one record for each station-level rise episode."""
     episodes = []
 
-    for station_id in STATIONS:
+    for station_id in stations:
         station_events = events[
             events["station_id"] == station_id
         ].copy()
