@@ -78,6 +78,7 @@ def calculate_daily_changes(
 
 def calculate_station_thresholds(
     daily_changes: pd.DataFrame,
+    stations: list[str] = STATIONS,
 ) -> pd.DataFrame:
     """
     Calculate the station-specific threshold from positive
@@ -85,7 +86,7 @@ def calculate_station_thresholds(
     """
     thresholds = []
 
-    for station_id in STATIONS:
+    for station_id in stations:
         station_data = daily_changes[
             daily_changes["station_id"] == station_id
         ]
