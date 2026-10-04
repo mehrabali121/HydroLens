@@ -2,158 +2,125 @@
 
 ## Project
 
-River Rise Early-Warning Analysis Pipeline
+River Rise Analysis is a reproducible historical analysis of water-level observations from hydrometric monitoring stations in the Saint John River basin.
 
-This project analyzes historical water-level observations from monitoring
-stations in the Saint John River basin.
+The project examines historical water-level rises and temporal relationships between upstream and downstream stations.
 
-The analysis is historical and is not an operational flood-warning or
-emergency-response system.
+This is an academic portfolio project. It is not an operational flood-warning, forecasting, or emergency-response system.
 
 ## Primary Data Source
 
-The primary data source is the Water Survey of Canada (WSC), part of
-Environment and Climate Change Canada (ECCC).
+The primary data source is the Water Survey of Canada (WSC), part of Environment and Climate Change Canada (ECCC).
 
-WSC provides standardized hydrometric data including water-level
-measurements from monitoring stations across Canada.
-
-## Data Types Used
-
-### Daily Historical Water-Level Data
-
-Daily data provide one water-level value per day.
-
-These data are intended to support:
-
-- longer-term historical analysis
-- station coverage analysis
-- daily water-level changes
-- missing-data analysis
-- historical event analysis where daily resolution is sufficient
-
-### Unit-Value Water-Level Data
-
-Unit-value data provide higher-resolution water-level observations.
-
-These data are intended to support:
-
-- higher-resolution event analysis
-- timing between upstream and downstream observations
-- calculation of elapsed time between observations
-- analysis of irregular sampling intervals
-
-The project does not assume that unit observations occur at an exact
-fixed interval. The timestamp of each observation will be used when
-calculating elapsed time.
+The project uses hydrometric water-level observations obtained for selected monitoring stations in the Saint John River basin.
 
 ## Stations
 
-The initial station set contains four stations along the Saint John River:
+The analysis uses four stations along the Saint John River:
 
-| Station ID | Station | Role |
+| Station ID | Station | Analytical Role |
 |---|---|---|
-| 01AF002 | Saint John River at Grand Falls | Upstream reference |
-| 01AK003 | Saint John River at Fredericton | Downstream station |
-| 01AO012 | Saint John River at Gagetown | Further downstream station |
-| 01AP003 | Saint John River at Oak Point | Further downstream station |
+| `01AF002` | Saint John River at Grand Falls | Upstream reference |
+| `01AK003` | Saint John River at Fredericton | Downstream station |
+| `01AO012` | Saint John River at Gagetown | Further downstream station |
+| `01AP003` | Saint John River at Oak Point | Further downstream station |
 
-The upstream/downstream relationship is based on the stations' positions
-along the Saint John River.
+The upstream/downstream interpretation is based on the stations' positions along the river.
 
-The final analytical period will be determined after examining the actual
-station-specific data coverage and data quality.
+## Data Used in the Historical Analysis
 
-## Raw Sample Files
+Daily historical water-level observations are used for the implemented historical analysis pipeline.
 
-The repository currently contains small sample files used for development
-and testing.
+The pipeline uses these observations to examine:
 
-### Daily samples
+- station-specific historical coverage
+- missing observations and data quality
+- daily water-level changes
+- significant historical rise events
+- multi-day rise episodes
+- temporal relationships between upstream and downstream episodes
+- observed lead times in matched historical cases
 
-- `grand_falls_2024_01.csv`
-- `fredericton_2024_01.csv`
-- `gagetown_2024_01.csv`
-- `oak_point_2024_01.csv`
+The repository also contains small unit-value sample files retained as reference and development data. The implemented historical lead-time results documented in the project are based on the daily-data analysis pipeline.
 
-### Unit-value samples
+## Repository Data
 
-- `grand_falls_unit_sample.csv`
-- `fredericton_unit_sample.csv`
-- `gagetown_unit_sample.csv`
-- `oak_point_unit_sample.csv`
+Small reference and sample datasets are tracked under:
 
-These files are development samples and do not represent the complete
-historical dataset.
+```text
+data/raw/
+```
 
-## Important Data Interpretation Notes
+Tracked daily samples are organized by station:
+
+```text
+data/raw/daily/<station_id>/
+```
+
+Tracked unit-value samples are organized by station:
+
+```text
+data/raw/unit/<station_id>/
+```
+
+Larger historical downloads are excluded from Git.
+
+Generated cleaned datasets, event-analysis outputs, and the SQLite database are also excluded from Git and are intended to be recreated through the analysis pipeline.
+
+## Data Interpretation
 
 ### Station-specific water-level references
 
-Absolute water-level values should not be directly compared between
-stations as if they shared the same reference elevation.
+Absolute water-level values should not be directly compared between stations as though all stations share the same reference elevation.
 
-The analysis will primarily examine changes within each station and the
-timing of changes between stations.
+The analysis therefore focuses primarily on changes within individual stations and temporal relationships between station-specific rise episodes.
 
-### Daily data
+### Missing observations
 
-A daily water-level value represents the daily mean water level.
+Historical data availability varies by station and period.
 
-### Unit timestamps
+The matching analysis distinguishes evaluable cases from cases with insufficient downstream data so that missing observations are not silently treated as evidence that no downstream rise occurred.
 
-Unit-value timestamps in the sample files use UTC timestamps with a `Z`
-suffix.
+### Historical associations
 
-The pipeline will preserve timezone information rather than treating
-timestamps as timezone-naive values.
+A downstream rise occurring within the project's matching window after an upstream rise is treated as a historical temporal association.
 
-### Sampling interval
+This does not establish that the upstream rise caused the downstream rise.
 
-The sample unit-value files contain observations that are generally close
-to five-minute intervals, but the project will not assume a fixed
-five-minute interval.
+### Lead time
 
-Actual elapsed time will be calculated from consecutive timestamps.
+Historical lead time is calculated only for matched upstream/downstream rise episodes.
 
-### Approval status
+For the implemented daily analysis, lead time is the difference in calendar days between the upstream episode start date and the matched downstream episode start date.
 
-The unit-value sample files contain provisional approval status.
-
-The pipeline will preserve the original approval information rather than
-silently treating provisional observations as finalized observations.
-
-### Quality and symbols
-
-The raw files contain fields such as symbols, qualifiers, and approval
-information.
-
-These fields will be preserved during ingestion so that data-quality
-decisions can be made explicitly later.
+These observed historical lead times are descriptive results and should not be interpreted as guaranteed future warning times.
 
 ## Data Preservation
 
-Raw downloaded files are preserved in:
+Raw downloaded data are stored under:
 
-`data/raw/`
+```text
+data/raw/
+```
 
-Raw files should not be manually edited after download.
+Raw source files should not be manually edited after acquisition.
 
-Cleaning, validation, transformation, and analysis will occur in separate
-pipeline stages.
+Cleaning, normalization, validation, database loading, event detection, matching, and analysis are performed in separate pipeline stages.
 
 ## Reproducibility
 
-The project will document:
+The repository documents and preserves:
 
-1. the original data source
-2. the station identifiers
-3. the data types used
-4. acquisition dates or periods where appropriate
-5. transformations applied to the data
-6. validation and cleaning decisions
-7. analytical methods
-8. software dependencies
+1. the source of the hydrometric data
+2. station identifiers and analytical roles
+3. representative sample data
+4. data-cleaning and validation code
+5. historical event and episode definitions
+6. upstream/downstream matching logic
+7. lead-time and backtesting code
+8. generated portfolio visualizations
+9. automated tests
+10. pinned Python dependencies
+11. continuous-integration configuration
 
-The goal is for another person to understand how the analytical results
-were produced from the source data.
+The goal is to make the analytical workflow understandable, reviewable, and reproducible without presenting the project as an operational forecasting system.
