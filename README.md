@@ -105,3 +105,29 @@ Historical matched proportions differed by downstream station:
 - `01AP003`: 16 of 58 evaluable upstream episodes matched (27.6%)
 
 These statistics describe the historical matching methodology used in this project. They are not forecasts, causal estimates, or guaranteed future warning times.
+
+## Visualizations
+
+### Historical Association Outcomes
+
+![Historical association outcomes](reports/figures/historical_association_outcomes.png)
+
+Shows the historical association outcomes for each downstream station under the project's episode-matching methodology.
+
+### Historical Lead-Time Distribution
+
+![Historical lead-time distribution](reports/figures/historical_lead_time_distribution.png)
+
+Shows the distribution of observed 0-, 1-, and 2-day lead times across the 61 matched historical associations.
+
+### Lead Time by Downstream Station
+
+![Lead time by downstream station](reports/figures/lead_time_by_downstream_station.png)
+
+Compares the observed historical lead-time distributions across the three downstream stations.
+
+### Historical Backtest Lag Distribution
+
+![Historical backtest lag distribution](reports/figures/historical_backtest_lag_distribution.png)
+
+Summarizes the observed lag distribution used to validate the historical matching and lead-time workflow.
