@@ -1,0 +1,4 @@
+upstream_station_id,downstream_station_id,total_upstream_episodes,matched_episodes,pre_existing_episodes,no_candidate_episodes,insufficient_data,primary_match_evaluable,broader_association_evaluable,directional_match_proportion,broader_temporal_association_proportion,same_day_matches,one_day_matches,two_day_matches,median_positive_start_separation_days
+01AF002,01AK003,59,29,4,26,0,55,59,0.5272727272727272,0.559322033898305,13,13,3,1.0
+01AF002,01AO012,59,16,4,35,4,51,55,0.3137254901960784,0.36363636363636365,3,12,1,1.0
+01AF002,01AP003,59,16,3,39,1,55,58,0.2909090909090909,0.3275862068965517,6,7,3,1.0
