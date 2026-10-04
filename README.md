@@ -1,19 +1,42 @@
 # River Rise Analysis
 
-A reproducible Python and SQL data-analysis project investigating historical water-level relationships between monitoring stations in the Saint John River basin.
+A reproducible Python and SQL historical analysis of water-level relationships between hydrometric monitoring stations in the Saint John River basin.
 
-The project will examine historical rises, upstream/downstream timing relationships, and observed lead times using publicly available hydrometric data.
+The project detects historical water-level rise events, groups them into episodes, examines upstream/downstream temporal associations, and summarizes observed lead times in matched historical cases.
 
-This project is an academic portfolio project and is not an operational flood-warning or emergency-response system.
+This is an academic portfolio project. It is not an operational flood-warning, forecasting, or emergency-response system.
 
-## Status
+## Project Status
 
-Early development — data sources and station selection are being researched.
+The core historical analysis pipeline is implemented, including:
 
-## Planned Technologies
+- hydrometric data acquisition and validation
+- daily data cleaning and normalization
+- SQLite storage and verification
+- exploratory water-level analysis
+- historical rise-event detection
+- rise-episode construction
+- upstream/downstream episode matching
+- historical association classification
+- lead-time calculation and summary
+- historical backtesting
+- visualization
+- automated tests
+- GitHub Actions continuous integration
+- reproducible pinned Python dependencies
 
-- Python
-- SQL
+## Technologies
+
+- Python 3.14
+- pandas
+- matplotlib
 - SQLite
-- Git/GitHub
 - pytest
+- Git and GitHub
+- GitHub Actions
+
+## Important Interpretation
+
+The analysis describes historical temporal associations in the available data.
+
+A matched upstream/downstream event does not establish causation, and historical lead times should not be interpreted as guaranteed future warning times. Missing observations, station-specific behavior, event-definition choices, and the historical matching methodology all affect the results.
