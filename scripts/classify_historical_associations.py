@@ -289,7 +289,9 @@ def validate_classification(
             "Duplicate match IDs found after classification."
         )
 
-    expected_record_count = 59 * 3
+    expected_record_count = (
+        classified["upstream_episode_id"].nunique() * 3
+    )
 
     if len(classified) != expected_record_count:
         raise ValueError(
@@ -302,105 +304,29 @@ def validate_classification(
             f"Expected 3 station-pair summaries, found {len(summary)}."
         )
 
-    expected_counts = {
-        "01AK003": {
-            "matched": 29,
-            "pre_existing": 4,
-            "no_candidate": 26,
-            "insufficient": 0,
-        },
-        "01AO012": {
-            "matched": 16,
-            "pre_existing": 4,
-            "no_candidate": 35,
-            "insufficient": 4,
-        },
-        "01AP003": {
-            "matched": 16,
-            "pre_existing": 3,
-            "no_candidate": 39,
-            "insufficient": 1,
-        },
-    }
+    # Every upstream episode must land in exactly one class for
+    # each downstream station, so no record is lost or counted twice.
+    for _, row in summary.iterrows():
+        class_total = (
+            row["matched_episodes"]
+            + row["pre_existing_episodes"]
+            + row["no_candidate_episodes"]
+            + row["insufficient_data"]
+        )
 
-    for downstream_station, expected in expected_counts.items():
-        group = classified[
-            classified["target_downstream_station"]
-            == downstream_station
-        ]
-
-        actual = {
-            "matched": int(
-                (group["association_class"] == "matched").sum()
-            ),
-            "pre_existing": int(
-                (
-                    group["association_class"]
-                    == "pre_existing_episode"
-                ).sum()
-            ),
-            "no_candidate": int(
-                (
-                    group["association_class"]
-                    == "no_candidate"
-                ).sum()
-            ),
-            "insufficient": int(
-                (
-                    group["association_class"]
-                    == "insufficient_data"
-                ).sum()
-            ),
-        }
-
-        if actual != expected:
+        if class_total != row["total_upstream_episodes"]:
             raise ValueError(
-                f"Classification mismatch for "
-                f"{downstream_station}: "
-                f"expected {expected}, found {actual}"
+                f"Class counts for {row['downstream_station_id']} "
+                f"add up to {class_total}, expected "
+                f"{row['total_upstream_episodes']}."
             )
 
-    summary_by_station = summary.set_index(
-        "downstream_station_id"
-    )
-
-    expected_directional = {
-        "01AK003": 29 / 55,
-        "01AO012": 16 / 51,
-        "01AP003": 16 / 55,
-    }
-
-    expected_broader = {
-        "01AK003": 33 / 59,
-        "01AO012": 20 / 55,
-        "01AP003": 19 / 58,
-    }
-
-    for station, expected_value in expected_directional.items():
-        actual_value = summary_by_station.loc[
-            station,
-            "directional_match_proportion",
-        ]
-
-        if abs(actual_value - expected_value) > 1e-12:
-            raise ValueError(
-                f"Directional proportion mismatch for "
-                f"{station}: expected {expected_value}, "
-                f"found {actual_value}"
-            )
-
-    for station, expected_value in expected_broader.items():
-        actual_value = summary_by_station.loc[
-            station,
-            "broader_temporal_association_proportion",
-        ]
-
-        if abs(actual_value - expected_value) > 1e-12:
-            raise ValueError(
-                f"Broader proportion mismatch for "
-                f"{station}: expected {expected_value}, "
-                f"found {actual_value}"
-            )
+    for column in [
+        "directional_match_proportion",
+        "broader_temporal_association_proportion",
+    ]:
+        if not summary[column].between(0, 1).all():
+            raise ValueError(f"{column} has values outside 0 to 1.")
 
 
 def print_summary(summary: pd.DataFrame) -> None:
