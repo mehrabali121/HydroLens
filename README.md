@@ -1,5 +1,7 @@
 # River Rise Analysis
 
+[![CI](https://github.com/mehrabali121/river-rise-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/mehrabali121/river-rise-analysis/actions/workflows/ci.yml)
+
 A reproducible Python and SQL historical analysis of water-level relationships between hydrometric monitoring stations in the Saint John River basin.
 
 The project detects historical water-level rise events, groups them into episodes, examines upstream/downstream temporal associations, and summarizes observed lead times in matched historical cases.
