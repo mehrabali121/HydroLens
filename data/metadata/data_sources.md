@@ -2,7 +2,7 @@
 
 ## Project
 
-River Rise Analysis is a reproducible historical analysis of water-level observations from hydrometric monitoring stations in the Saint John River basin.
+HydroLens is a reproducible historical analysis of water-level observations from hydrometric monitoring stations in the Saint John River basin.
 
 The project examines historical water-level rises and temporal relationships between upstream and downstream stations.
 
