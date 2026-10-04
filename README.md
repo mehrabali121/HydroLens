@@ -1,8 +1,10 @@
-# River Rise Analysis
+# HydroLens
 
-[![CI](https://github.com/mehrabali121/river-rise-analysis/actions/workflows/ci.yml/badge.svg)](https://github.com/mehrabali121/river-rise-analysis/actions/workflows/ci.yml)
+[![CI](https://github.com/mehrabali121/HydroLens/actions/workflows/ci.yml/badge.svg)](https://github.com/mehrabali121/HydroLens/actions/workflows/ci.yml)
 
-A reproducible Python and SQL historical analysis of water-level relationships between hydrometric monitoring stations in the Saint John River basin.
+**Historical River Rise & Lead-Time Analytics**
+
+HydroLens is a reproducible Python and SQL data-analysis pipeline for investigating historical water-level rise events and upstream/downstream temporal relationships between hydrometric monitoring stations in the Saint John River basin.
 
 The project detects historical water-level rise events, groups them into episodes, examines upstream/downstream temporal associations, and summarizes observed lead times in matched historical cases.
 
@@ -46,7 +48,7 @@ A matched upstream/downstream event does not establish causation, and historical
 ## Repository Structure
 
 ```text
-river-rise-analysis/
+HydroLens/
 |-- .github/workflows/    GitHub Actions CI
 |-- data/
 |   |-- metadata/         Data-source documentation
