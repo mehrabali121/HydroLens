@@ -4,15 +4,21 @@
 
 **Historical River Rise & Lead-Time Analytics**
 
+**Live Dashboard:** https://hydro-lens.streamlit.app/
+
 HydroLens is a reproducible Python and SQL data-analysis pipeline with an interactive Streamlit dashboard for investigating historical water-level rise events and upstream/downstream temporal relationships between hydrometric monitoring stations in the Saint John River basin.
 
-The project detects historical water-level rise events, groups them into episodes, examines upstream/downstream temporal associations, summarizes observed lead times in matched historical cases, and presents the results through a recruiter-facing interactive dashboard.
+The project detects historical water-level rise events, groups them into episodes, examines upstream/downstream temporal associations, summarizes observed lead times in matched historical cases, and presents the results through an interactive dashboard.
 
 This is an academic portfolio project. It is not an operational flood-warning, forecasting, or emergency-response system.
 
 ## Interactive Dashboard
 
-HydroLens includes a Streamlit dashboard that provides:
+The public HydroLens dashboard is available at:
+
+**https://hydro-lens.streamlit.app/**
+
+The dashboard provides:
 
 - high-level historical analysis metrics
 - interactive downstream-station exploration
@@ -28,8 +34,6 @@ Run the dashboard locally with:
 ```powershell
 python -m streamlit run app.py
 ```
-
-A public dashboard link will be added after deployment.
 
 ## Project Status
 
@@ -225,7 +229,7 @@ HydroLens demonstrates practical experience with:
 - reproducible analytical pipelines
 - historical event-matching logic
 - data visualization
-- interactive dashboard development
+- interactive dashboard development with Streamlit
 - automated software testing
 - continuous integration
 - Git/GitHub project workflow
