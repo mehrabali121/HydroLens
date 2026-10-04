@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -227,35 +228,34 @@ comparison_metric = st.radio(
     horizontal=True,
 )
 
-if comparison_metric == "Historical matched proportion":
-    comparison_data = STATION_RESULTS.set_index("station_id")[
-        ["matched_percent"]
-    ].rename(columns={"matched_percent": "Matched proportion (%)"})
+METRIC_COLUMNS = {
+    "Historical matched proportion": ("matched_percent", "Matched proportion (%)"),
+    "Matched episode count": ("matched", "Matched episodes"),
+    "Mean observed lead time": ("mean_lead_time", "Mean lead time (days)"),
+}
 
-    st.bar_chart(
-        comparison_data,
-        y_label="Percent",
+column, axis_title = METRIC_COLUMNS[comparison_metric]
+
+comparison_chart = (
+    alt.Chart(STATION_RESULTS)
+    .mark_bar()
+    .encode(
+        x=alt.X(
+            "location:N",
+            title="Downstream station",
+            sort=None,
+            axis=alt.Axis(labelAngle=0),
+        ),
+        y=alt.Y(
+            f"{column}:Q",
+            title=axis_title,
+            scale=alt.Scale(zero=True),
+        ),
+        tooltip=["station_id", "location", column],
     )
+)
 
-elif comparison_metric == "Matched episode count":
-    comparison_data = STATION_RESULTS.set_index("station_id")[
-        ["matched"]
-    ].rename(columns={"matched": "Matched episodes"})
-
-    st.bar_chart(
-        comparison_data,
-        y_label="Episodes",
-    )
-
-else:
-    comparison_data = STATION_RESULTS.set_index("station_id")[
-        ["mean_lead_time"]
-    ].rename(columns={"mean_lead_time": "Mean lead time (days)"})
-
-    st.bar_chart(
-        comparison_data,
-        y_label="Days",
-    )
+st.altair_chart(comparison_chart, width="stretch")
 
 st.caption(
     "Station-level comparisons summarize historical results under the "
