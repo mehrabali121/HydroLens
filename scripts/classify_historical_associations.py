@@ -47,8 +47,6 @@ EXPECTED_AVAILABILITY_COLUMNS = {
 
 EXPECTED_UNMATCHED_COLUMNS = {
     "match_id",
-    "upstream_station_id",
-    "downstream_station_id",
     "window_result",
 }
 
@@ -175,12 +173,15 @@ def summarize_by_pair(classified: pd.DataFrame) -> pd.DataFrame:
         sort=True,
     ):
         matched = int((group["association_class"] == "matched").sum())
+
         pre_existing = int(
             (group["association_class"] == "pre_existing_episode").sum()
         )
+
         no_candidate = int(
             (group["association_class"] == "no_candidate").sum()
         )
+
         insufficient = int(
             (group["association_class"] == "insufficient_data").sum()
         )
@@ -188,6 +189,7 @@ def summarize_by_pair(classified: pd.DataFrame) -> pd.DataFrame:
         total = len(group)
 
         primary_match_evaluable = matched + no_candidate
+
         broader_association_evaluable = (
             matched + pre_existing + no_candidate
         )
@@ -204,14 +206,18 @@ def summarize_by_pair(classified: pd.DataFrame) -> pd.DataFrame:
             else float("nan")
         )
 
-        matched_group = group[group["association_class"] == "matched"]
+        matched_group = group[
+            group["association_class"] == "matched"
+        ]
 
         same_day = int(
             (matched_group["start_lag_days"] == 0).sum()
         )
+
         one_day = int(
             (matched_group["start_lag_days"] == 1).sum()
         )
+
         two_day = int(
             (matched_group["start_lag_days"] == 2).sum()
         )
@@ -267,16 +273,21 @@ def validate_classification(
         "insufficient_data",
     }
 
-    actual_classes = set(classified["association_class"].unique())
+    actual_classes = set(
+        classified["association_class"].unique()
+    )
 
     unexpected_classes = actual_classes - expected_classes
+
     if unexpected_classes:
         raise ValueError(
             f"Unexpected association classes: {sorted(unexpected_classes)}"
         )
 
     if classified["match_id"].duplicated().any():
-        raise ValueError("Duplicate match IDs found after classification.")
+        raise ValueError(
+            "Duplicate match IDs found after classification."
+        )
 
     expected_record_count = 59 * 3
 
@@ -314,7 +325,8 @@ def validate_classification(
 
     for downstream_station, expected in expected_counts.items():
         group = classified[
-            classified["target_downstream_station"] == downstream_station
+            classified["target_downstream_station"]
+            == downstream_station
         ]
 
         actual = {
@@ -322,23 +334,35 @@ def validate_classification(
                 (group["association_class"] == "matched").sum()
             ),
             "pre_existing": int(
-                (group["association_class"] == "pre_existing_episode").sum()
+                (
+                    group["association_class"]
+                    == "pre_existing_episode"
+                ).sum()
             ),
             "no_candidate": int(
-                (group["association_class"] == "no_candidate").sum()
+                (
+                    group["association_class"]
+                    == "no_candidate"
+                ).sum()
             ),
             "insufficient": int(
-                (group["association_class"] == "insufficient_data").sum()
+                (
+                    group["association_class"]
+                    == "insufficient_data"
+                ).sum()
             ),
         }
 
         if actual != expected:
             raise ValueError(
-                f"Classification mismatch for {downstream_station}: "
+                f"Classification mismatch for "
+                f"{downstream_station}: "
                 f"expected {expected}, found {actual}"
             )
 
-    summary_by_station = summary.set_index("downstream_station_id")
+    summary_by_station = summary.set_index(
+        "downstream_station_id"
+    )
 
     expected_directional = {
         "01AK003": 29 / 55,
@@ -354,24 +378,28 @@ def validate_classification(
 
     for station, expected_value in expected_directional.items():
         actual_value = summary_by_station.loc[
-            station, "directional_match_proportion"
+            station,
+            "directional_match_proportion",
         ]
 
         if abs(actual_value - expected_value) > 1e-12:
             raise ValueError(
-                f"Directional proportion mismatch for {station}: "
-                f"expected {expected_value}, found {actual_value}"
+                f"Directional proportion mismatch for "
+                f"{station}: expected {expected_value}, "
+                f"found {actual_value}"
             )
 
     for station, expected_value in expected_broader.items():
         actual_value = summary_by_station.loc[
-            station, "broader_temporal_association_proportion"
+            station,
+            "broader_temporal_association_proportion",
         ]
 
         if abs(actual_value - expected_value) > 1e-12:
             raise ValueError(
-                f"Broader proportion mismatch for {station}: "
-                f"expected {expected_value}, found {actual_value}"
+                f"Broader proportion mismatch for "
+                f"{station}: expected {expected_value}, "
+                f"found {actual_value}"
             )
 
 
@@ -386,56 +414,69 @@ def print_summary(summary: pd.DataFrame) -> None:
             f"\n{row['upstream_station_id']} -> "
             f"{row['downstream_station_id']}"
         )
+
         print(
-            f"  Total upstream episodes:       "
+            f"  Total upstream episodes:        "
             f"{int(row['total_upstream_episodes'])}"
         )
+
         print(
-            f"  Matched:                       "
+            f"  Matched:                        "
             f"{int(row['matched_episodes'])}"
         )
+
         print(
-            f"  Pre-existing downstream:      "
+            f"  Pre-existing downstream:       "
             f"{int(row['pre_existing_episodes'])}"
         )
+
         print(
-            f"  No candidate:                 "
+            f"  No candidate:                  "
             f"{int(row['no_candidate_episodes'])}"
         )
+
         print(
-            f"  Insufficient data:             "
+            f"  Insufficient data:              "
             f"{int(row['insufficient_data'])}"
         )
+
         print(
-            f"  Directional match evaluable:  "
+            f"  Directional match evaluable:   "
             f"{int(row['primary_match_evaluable'])}"
         )
+
         print(
-            f"  Directional match proportion: "
+            f"  Directional match proportion:  "
             f"{row['directional_match_proportion']:.1%}"
         )
+
         print(
             f"  Broader association evaluable: "
             f"{int(row['broader_association_evaluable'])}"
         )
+
         print(
-            f"  Broader temporal association: "
+            f"  Broader temporal association:  "
             f"{row['broader_temporal_association_proportion']:.1%}"
         )
+
         print(
-            f"  Same-day matches:              "
+            f"  Same-day matches:               "
             f"{int(row['same_day_matches'])}"
         )
+
         print(
-            f"  1-day matches:                 "
+            f"  1-day matches:                  "
             f"{int(row['one_day_matches'])}"
         )
+
         print(
-            f"  2-day matches:                 "
+            f"  2-day matches:                  "
             f"{int(row['two_day_matches'])}"
         )
+
         print(
-            f"  Median positive separation:    "
+            f"  Median positive separation:     "
             f"{row['median_positive_start_separation_days']:.1f} days"
         )
 
@@ -451,9 +492,20 @@ def main() -> None:
 
     summary = summarize_by_pair(classified)
 
-    validate_classification(classified, summary)
+    validate_classification(
+        classified,
+        summary,
+    )
 
-    summary.to_csv(OUTPUT_FILE, index=False)
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    summary.to_csv(
+        OUTPUT_FILE,
+        index=False,
+    )
 
     print(f"Classified records: {len(classified)}")
     print(f"Output: {OUTPUT_FILE}")
